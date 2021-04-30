@@ -20,10 +20,10 @@ import (
 //+kubebuilder:rbac:groups=config.openshift.io;operator.openshift.io,resources=networks,verbs=get
 
 const (
-	ovnKubernetesNetwork = "OVNKubernetes"
+	OvnKubernetesNetwork = "OVNKubernetes"
 	// baseK8sVersion specifies the base k8s version supported by the operator. (For eg. All versions in the format
 	// 1.20.x are supported for baseK8sVersion 1.20)
-	baseK8sVersion = "v1.21"
+	baseK8sVersion = "v1.19"
 )
 
 // Network interface contains methods to interact with cluster network objects
@@ -49,6 +49,13 @@ type networkType struct {
 	name string
 	// operatorClient is the OpenShift operator client, we will use to interact with OpenShift operator objects
 	operatorClient operatorv1.OperatorV1Interface
+}
+
+type thirdPartyNetworking struct {
+	networkType
+	clusterNetworkConfig *clusterNetworkCfg
+	cniDir               string
+	cniConfigFilePath    string
 }
 
 // config encapsulates cluster configuration
@@ -188,7 +195,7 @@ func networkConfigurationFactory(oclient configclient.Interface, operatorClient 
 		return nil, errors.Wrapf(err, "error getting cluster network config")
 	}
 	switch network {
-	case ovnKubernetesNetwork:
+	case OvnKubernetesNetwork:
 		return &ovnKubernetes{
 			networkType{
 				name:           network,
@@ -196,8 +203,20 @@ func networkConfigurationFactory(oclient configclient.Interface, operatorClient 
 			},
 			clusterNetworkCfg,
 		}, nil
+	//default:
+	//	return nil, errors.Errorf("%s : network type not supported", network)
 	default:
-		return nil, errors.Errorf("%s : network type not supported", network)
+		return &thirdPartyNetworking{
+			networkType{
+				// This will be some non-OpenShift network type
+				name:           network,
+				operatorClient: operatorClient,
+			},
+			clusterNetworkCfg,
+			"c:\\k\\cni",
+			"c:\\k\\cni\\config\\10-calico.conf",
+		}, nil
+
 	}
 }
 
@@ -240,6 +259,18 @@ func (ovn *ovnKubernetes) Validate() error {
 		return errors.New("invalid OVN hybrid networking configuration")
 	}
 	return nil
+}
+func (tp *thirdPartyNetworking) Validate() error {
+	return nil
+}
+
+func (tp *thirdPartyNetworking) GetServiceCIDR() (string, error) {
+	return tp.clusterNetworkConfig.serviceCIDR, nil
+}
+
+func (tp *thirdPartyNetworking) VXLANPort() string {
+	// vxlanPort will be empty
+	return tp.clusterNetworkConfig.vxlanPort
 }
 
 // getNetworkType returns network type of the cluster
