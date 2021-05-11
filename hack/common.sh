@@ -55,7 +55,7 @@ OSDK_WMCO_management() {
     $OSDK_PATH run packagemanifests bundle \
       --namespace $WMCO_DEPLOY_NAMESPACE \
       --install-mode=OwnNamespace \
-      --version $version \
+      --version 0.0.1 \
       --timeout 5m
   fi
   if [[ "$COMMAND" = "cleanup" ]]; then

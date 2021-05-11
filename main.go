@@ -47,7 +47,7 @@ func init() {
 
 func main() {
 	var debugLogging bool
-	flag.BoolVar(&debugLogging, "debugLogging", false, "Log debug messages")
+	flag.BoolVar(&debugLogging, "debugLogging", true, "Log debug messages")
 
 	// Add flags registered by imported packages (e.g. glog and
 	// controller-runtime)
